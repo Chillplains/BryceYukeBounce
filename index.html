@@ -13,10 +13,23 @@
     canvas {
       display: block;
     }
+    #speedBtn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: lime;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <canvas id="bryceCanvas"></canvas>
+  <button id="speedBtn">Speed Up</button>
 
   <script>
     const canvas = document.getElementById('bryceCanvas');
@@ -42,7 +55,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = currentColor;
-      ctx.font = "30px Arial";
+      ctx.font = "50px Comic Sans MS";
       ctx.textAlign = "center";
       ctx.fillText("BRYCE YUKE", x, y);
 
@@ -51,11 +64,11 @@
 
       let bounced = false;
 
-      if (x > canvas.width - 100 || x < 100) {
+      if (x > canvas.width - 150 || x < 150) {
         dx *= -1;
         bounced = true;
       }
-      if (y > canvas.height - 50 || y < 50) {
+      if (y > canvas.height - 75 || y < 75) {
         dy *= -1;
         bounced = true;
       }
@@ -68,6 +81,11 @@
     }
 
     draw();
+
+    document.getElementById('speedBtn').addEventListener('click', () => {
+      dx *= 1.5;
+      dy *= 1.5;
+    });
   </script>
 </body>
 </html>
