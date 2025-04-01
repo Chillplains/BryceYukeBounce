@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bryce Yuke Bouncer</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bryceCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('bryceCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let x = canvas.width / 2;
+    let y = canvas.height / 2;
+    let dx = 4;
+    let dy = 3;
+
+    const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
+    let currentColor = "lime";
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = currentColor;
+      ctx.font = "30px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("BRYCE YUKE", x, y);
+
+      x += dx;
+      y += dy;
+
+      let bounced = false;
+
+      if (x > canvas.width - 100 || x < 100) {
+        dx *= -1;
+        bounced = true;
+      }
+      if (y > canvas.height - 50 || y < 50) {
+        dy *= -1;
+        bounced = true;
+      }
+
+      if (bounced) {
+        currentColor = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+</body>
+</html>
