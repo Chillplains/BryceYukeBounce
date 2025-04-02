@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bryce Yuke Bouncer - ULTRA DELUXE EDITION</title>
+  <title>Bryce Yuke Bouncer - ULTRA CHAOS EDITION</title>
   <style>
     body {
       margin: 0;
@@ -53,7 +53,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      color: lime;
+      color: black;
     }
     #quote {
       margin-top: 10px;
@@ -67,6 +67,16 @@
       border-radius: 8px;
       display: none;
     }
+    #chaosBanner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 60px;
+      color: red;
+      display: none;
+      text-shadow: 2px 2px white;
+    }
   </style>
 </head>
 <body>
@@ -74,6 +84,11 @@
   <div id="controls">
     <button id="pauseBtn">Pause</button>
     <button id="rainBtn">Matrix Rain Mode</button>
+    <button id="speedBtn">Speed Up</button>
+    <button id="chaosBtn">🔥 Ultimate Chaos 🔥</button>
+    <button id="explosionBtn">Explosion Spam</button>
+    <button id="freezeBtn">Freeze All</button>
+    <button id="partyBtn">Party Mode</button>
     <button id="dropdownToggle" class="dropdown-toggle">Toggle Modes</button>
     <div id="dropdown" class="dropdown">
       <label class="toggle-label"><input type="checkbox" id="bgToggle"> Chaos Background</label>
@@ -88,6 +103,7 @@
     <div id="quote"></div>
   </div>
   <div id="infoBox" class="info-box"></div>
+  <div id="chaosBanner">CHAOS MODE!!!</div>
 
   <script>
     const canvas = document.getElementById('bryceCanvas');
@@ -105,17 +121,19 @@
     const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
 
     class BryceYuke {
-      constructor() {
+      constructor(rain = false) {
         this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.dx = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
-        this.dy = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+        this.y = rain ? -50 : Math.random() * canvas.height;
+        this.dx = rain ? 0 : (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+        this.dy = rain ? Math.random() * 5 + 3 : (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
         this.color = "lime";
         this.size = 50;
+        this.originalSize = 50;
         this.alive = true;
         this.spawnTime = Date.now();
         this.pausedTime = 0;
         this.pauseStart = null;
+        this.rain = rain;
         this.mood = "Chaotic";
         this.role = "Bouncer";
         this.personality = "Unpredictable";
@@ -137,29 +155,41 @@
         this.x += this.dx;
         this.y += this.dy;
 
+        if (this.rain && this.y > canvas.height + 50) {
+          this.alive = false;
+        }
+
         let bounced = false;
 
-        if (this.x > canvas.width - 150 || this.x < 150) {
-          this.dx *= -1;
-          bounced = true;
-        }
-        if (this.y > canvas.height - 75 || this.y < 75) {
-          this.dy *= -1;
-          bounced = true;
-        }
+        if (!this.rain) {
+          if (this.x > canvas.width - 150 || this.x < 150) {
+            this.dx *= -1;
+            bounced = true;
+          }
+          if (this.y > canvas.height - 75 || this.y < 75) {
+            this.dy *= -1;
+            bounced = true;
+          }
 
-        if (bounced && document.getElementById('quoteToggle').checked) {
-          showQuote(this.favQuote);
-        }
+          if (bounced && document.getElementById('quoteToggle').checked) {
+            showQuote(this.favQuote);
+          }
 
-        if (bounced) {
-          this.color = colors[Math.floor(Math.random() * colors.length)];
+          if (bounced) {
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+          }
         }
       }
 
       shrink() {
         if (this.size > 10) {
           this.size -= 2;
+        }
+      }
+
+      growBack() {
+        if (this.size < this.originalSize) {
+          this.size += 2;
         }
       }
 
@@ -197,6 +227,7 @@
     let bryces = [new BryceYuke()];
     let paused = false;
     let rainMode = false;
+    let chaosActive = false;
 
     function showQuote(text) {
       const quoteBox = document.getElementById('quote');
@@ -235,20 +266,107 @@
 
       if (document.getElementById('shrinkToggle').checked) {
         bryces.forEach(b => b.shrink());
+      } else {
+        bryces.forEach(b => b.growBack());
       }
 
-      if (rainMode && Math.random() < 0.2) {
-        const rainYuke = new BryceYuke();
-        rainYuke.y = -50;
-        rainYuke.dy = Math.random() * 5 + 3;
-        bryces.push(rainYuke);
-        updateCounter();
+      if (rainMode) {
+        if (Math.random() < 0.4) {
+          bryces.push(new BryceYuke(true));
+        }
       }
 
       requestAnimationFrame(animate);
     }
 
     animate();
+
+    document.getElementById('rainBtn').addEventListener('click', () => {
+      rainMode = !rainMode;
+      if (rainMode) {
+        bryces = [];
+      }
+      updateCounter();
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      paused = !paused;
+      bryces.forEach(b => {
+        if (paused) {
+          b.pauseTimer();
+        } else {
+          b.resumeTimer();
+        }
+      });
+    });
+
+    document.getElementById('speedBtn').addEventListener('click', () => {
+      bryces.forEach(b => {
+        b.dx *= 1.5;
+        b.dy *= 1.5;
+      });
+    });
+
+    document.getElementById('chaosBtn').addEventListener('click', () => {
+      chaosActive = true;
+      document.getElementById('chaosBanner').style.display = 'block';
+      document.getElementById('bgToggle').checked = true;
+      document.getElementById('shrinkToggle').checked = true;
+      document.getElementById('collideToggle').checked = true;
+      document.getElementById('clickToggle').checked = true;
+      document.getElementById('quoteToggle').checked = true;
+      bryces.forEach(b => {
+        b.dx *= 3;
+        b.dy *= 3;
+      });
+      setTimeout(() => {
+        document.getElementById('chaosBanner').style.display = 'none';
+        chaosActive = false;
+      }, 10000);
+    });
+
+    document.getElementById('explosionBtn').addEventListener('click', () => {
+      bryces.forEach(b => {
+        if (b.alive) {
+          const explosion = document.createElement('div');
+          explosion.style.position = 'absolute';
+          explosion.style.left = `${b.x}px`;
+          explosion.style.top = `${b.y}px`;
+          explosion.style.color = 'white';
+          explosion.innerText = "💥";
+          document.body.appendChild(explosion);
+          setTimeout(() => explosion.remove(), 500);
+        }
+      });
+    });
+
+    document.getElementById('freezeBtn').addEventListener('click', () => {
+      paused = true;
+      bryces.forEach(b => b.pauseTimer());
+    });
+
+    document.getElementById('partyBtn').addEventListener('click', () => {
+      for (let i = 0; i < 50; i++) {
+        bryces.push(new BryceYuke());
+      }
+      updateCounter();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      bryces = [new BryceYuke()];
+      rainMode = false;
+      updateCounter();
+    });
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      bryces.push(new BryceYuke());
+      updateCounter();
+    });
+
+    document.getElementById('dropdownToggle').addEventListener('click', () => {
+      const dropdown = document.getElementById('dropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    });
 
     canvas.addEventListener('click', (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -288,37 +406,6 @@
       box.style.display = 'block';
       setTimeout(() => box.style.display = 'none', 3000);
     }
-
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      bryces = [new BryceYuke()];
-      rainMode = false;
-      updateCounter();
-    });
-
-    document.getElementById('addBtn').addEventListener('click', () => {
-      bryces.push(new BryceYuke());
-      updateCounter();
-    });
-
-    document.getElementById('dropdownToggle').addEventListener('click', () => {
-      const dropdown = document.getElementById('dropdown');
-      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
-    });
-
-    document.getElementById('pauseBtn').addEventListener('click', () => {
-      paused = !paused;
-      bryces.forEach(b => {
-        if (paused) {
-          b.pauseTimer();
-        } else {
-          b.resumeTimer();
-        }
-      });
-    });
-
-    document.getElementById('rainBtn').addEventListener('click', () => {
-      rainMode = !rainMode;
-    });
 
     updateCounter();
   </script>
