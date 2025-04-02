@@ -42,6 +42,7 @@
       display: none;
       flex-direction: column;
       gap: 5px;
+      margin-top: 5px;
     }
     .dropdown-toggle {
       background-color: white;
@@ -72,12 +73,12 @@
   <canvas id="bryceCanvas"></canvas>
   <div id="controls">
     <button id="pauseBtn">Pause</button>
-    <button id="rainBtn">Rain Mode</button>
+    <button id="rainBtn">Matrix Rain Mode</button>
     <button id="dropdownToggle" class="dropdown-toggle">Toggle Modes</button>
     <div id="dropdown" class="dropdown">
       <label class="toggle-label"><input type="checkbox" id="bgToggle"> Chaos Background</label>
       <label class="toggle-label"><input type="checkbox" id="shrinkToggle"> Shrink Yukes</label>
-      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode (Collision)</label>
       <label class="toggle-label"><input type="checkbox" id="clickToggle"> Click to Destroy</label>
       <label class="toggle-label"><input type="checkbox" id="quoteToggle"> Quote Mode</label>
     </div>
@@ -113,6 +114,8 @@
         this.size = 50;
         this.alive = true;
         this.spawnTime = Date.now();
+        this.pausedTime = 0;
+        this.pauseStart = null;
         this.mood = "Chaotic";
         this.role = "Bouncer";
         this.personality = "Unpredictable";
@@ -129,7 +132,7 @@
       }
 
       update() {
-        if (!this.alive) return;
+        if (!this.alive || paused) return;
 
         this.x += this.dx;
         this.y += this.dy;
@@ -145,11 +148,12 @@
           bounced = true;
         }
 
+        if (bounced && document.getElementById('quoteToggle').checked) {
+          showQuote(this.favQuote);
+        }
+
         if (bounced) {
           this.color = colors[Math.floor(Math.random() * colors.length)];
-          if (document.getElementById('quoteToggle').checked) {
-            showQuote(this.favQuote);
-          }
         }
       }
 
@@ -171,10 +175,26 @@
       isClicked(mx, my) {
         return this.alive && Math.abs(this.x - mx) < 100 && Math.abs(this.y - my) < 50;
       }
+
+      getAliveTime() {
+        let time = Date.now() - this.spawnTime - this.pausedTime;
+        if (this.pauseStart) time -= Date.now() - this.pauseStart;
+        return (time / 1000).toFixed(1);
+      }
+
+      pauseTimer() {
+        if (!this.pauseStart) this.pauseStart = Date.now();
+      }
+
+      resumeTimer() {
+        if (this.pauseStart) {
+          this.pausedTime += Date.now() - this.pauseStart;
+          this.pauseStart = null;
+        }
+      }
     }
 
     let bryces = [new BryceYuke()];
-    let chaosMode = false;
     let paused = false;
     let rainMode = false;
 
@@ -191,36 +211,40 @@
     }
 
     function animate() {
-      if (!paused) {
-        if (document.getElementById('bgToggle').checked) {
-          document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        }
+      if (document.getElementById('bgToggle').checked) {
+        document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      } else {
+        document.body.style.backgroundColor = "black";
+      }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        bryces.forEach(b => {
-          b.update();
-          b.draw();
-        });
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bryces.forEach(b => {
+        b.update();
+        b.draw();
+      });
 
-        if (document.getElementById('collideToggle').checked) {
-          for (let i = 0; i < bryces.length; i++) {
-            for (let j = i + 1; j < bryces.length; j++) {
-              if (bryces[i].collideWith(bryces[j])) {
-                bryces[j].alive = false;
-              }
+      if (document.getElementById('collideToggle').checked) {
+        for (let i = 0; i < bryces.length; i++) {
+          for (let j = i + 1; j < bryces.length; j++) {
+            if (bryces[i].collideWith(bryces[j])) {
+              bryces[j].alive = false;
             }
           }
         }
-
-        if (document.getElementById('shrinkToggle').checked) {
-          bryces.forEach(b => b.shrink());
-        }
-
-        if (rainMode && Math.random() < 0.1) {
-          bryces.push(new BryceYuke());
-          updateCounter();
-        }
       }
+
+      if (document.getElementById('shrinkToggle').checked) {
+        bryces.forEach(b => b.shrink());
+      }
+
+      if (rainMode && Math.random() < 0.2) {
+        const rainYuke = new BryceYuke();
+        rainYuke.y = -50;
+        rainYuke.dy = Math.random() * 5 + 3;
+        bryces.push(rainYuke);
+        updateCounter();
+      }
+
       requestAnimationFrame(animate);
     }
 
@@ -252,11 +276,10 @@
 
     function showInfoBox(x, y, b) {
       const box = document.getElementById('infoBox');
-      const timeAlive = ((Date.now() - b.spawnTime) / 1000).toFixed(1);
       box.style.left = `${x}px`;
       box.style.top = `${y}px`;
       box.innerHTML = `
-        <strong>Time Alive:</strong> ${timeAlive}s<br>
+        <strong>Time Alive:</strong> ${b.getAliveTime()}s<br>
         <strong>Mood:</strong> ${b.mood}<br>
         <strong>Role:</strong> ${b.role}<br>
         <strong>Personality:</strong> ${b.personality}<br>
@@ -268,9 +291,7 @@
 
     document.getElementById('resetBtn').addEventListener('click', () => {
       bryces = [new BryceYuke()];
-      chaosMode = false;
       rainMode = false;
-      document.body.style.backgroundColor = "black";
       updateCounter();
     });
 
@@ -286,6 +307,13 @@
 
     document.getElementById('pauseBtn').addEventListener('click', () => {
       paused = !paused;
+      bryces.forEach(b => {
+        if (paused) {
+          b.pauseTimer();
+        } else {
+          b.resumeTimer();
+        }
+      });
     });
 
     document.getElementById('rainBtn').addEventListener('click', () => {
