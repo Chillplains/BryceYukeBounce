@@ -13,10 +13,13 @@
     canvas {
       display: block;
     }
-    #speedBtn {
+    #controls {
       position: absolute;
       top: 20px;
       left: 20px;
+    }
+    button {
+      margin: 5px;
       padding: 10px 20px;
       font-size: 18px;
       background-color: lime;
@@ -29,7 +32,11 @@
 </head>
 <body>
   <canvas id="bryceCanvas"></canvas>
-  <button id="speedBtn">Speed Up</button>
+  <div id="controls">
+    <button id="speedBtn">Speed Up</button>
+    <button id="resetBtn">Reset</button>
+    <button id="addBtn">Add Bryce Yuke</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('bryceCanvas');
@@ -43,48 +50,71 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    let x = canvas.width / 2;
-    let y = canvas.height / 2;
-    let dx = 4;
-    let dy = 3;
-
     const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
-    let currentColor = "lime";
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = currentColor;
-      ctx.font = "50px Comic Sans MS";
-      ctx.textAlign = "center";
-      ctx.fillText("BRYCE YUKE", x, y);
-
-      x += dx;
-      y += dy;
-
-      let bounced = false;
-
-      if (x > canvas.width - 150 || x < 150) {
-        dx *= -1;
-        bounced = true;
-      }
-      if (y > canvas.height - 75 || y < 75) {
-        dy *= -1;
-        bounced = true;
+    class BryceYuke {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.dx = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+        this.dy = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+        this.color = "lime";
       }
 
-      if (bounced) {
-        currentColor = colors[Math.floor(Math.random() * colors.length)];
+      draw() {
+        ctx.fillStyle = this.color;
+        ctx.font = "50px Comic Sans MS";
+        ctx.textAlign = "center";
+        ctx.fillText("BRYCE YUKE", this.x, this.y);
       }
 
-      requestAnimationFrame(draw);
+      update() {
+        this.x += this.dx;
+        this.y += this.dy;
+
+        let bounced = false;
+
+        if (this.x > canvas.width - 150 || this.x < 150) {
+          this.dx *= -1;
+          bounced = true;
+        }
+        if (this.y > canvas.height - 75 || this.y < 75) {
+          this.dy *= -1;
+          bounced = true;
+        }
+
+        if (bounced) {
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+      }
     }
 
-    draw();
+    let bryces = [new BryceYuke()];
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      bryces.forEach(b => {
+        b.update();
+        b.draw();
+      });
+      requestAnimationFrame(animate);
+    }
+
+    animate();
 
     document.getElementById('speedBtn').addEventListener('click', () => {
-      dx *= 1.5;
-      dy *= 1.5;
+      bryces.forEach(b => {
+        b.dx *= 1.5;
+        b.dy *= 1.5;
+      });
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      bryces = [new BryceYuke()];
+    });
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      bryces.push(new BryceYuke());
     });
   </script>
 </body>
