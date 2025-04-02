@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bryce Yuke Bouncer</title>
+  <title>Bryce Yuke Bouncer - ULTRA DELUXE EDITION</title>
   <style>
     body {
       margin: 0;
@@ -19,40 +19,74 @@
       position: absolute;
       top: 20px;
       left: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 10px;
     }
-    button {
+    button, label {
       margin: 2px;
-      padding: 10px 20px;
-      font-size: 16px;
+      padding: 5px 10px;
+      font-size: 14px;
       background-color: lime;
       color: black;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      display: block;
     }
     #counter {
       margin-top: 10px;
       font-size: 20px;
+    }
+    .dropdown {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .dropdown-toggle {
+      background-color: white;
+      color: black;
+      cursor: pointer;
+    }
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: lime;
+    }
+    #quote {
+      margin-top: 10px;
+      font-size: 24px;
+    }
+    .info-box {
+      position: absolute;
+      background: white;
+      color: black;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
     }
   </style>
 </head>
 <body>
   <canvas id="bryceCanvas"></canvas>
   <div id="controls">
-    <button id="speedBtn">Speed Up</button>
-    <button id="resetBtn">Reset</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="rainBtn">Rain Mode</button>
+    <button id="dropdownToggle" class="dropdown-toggle">Toggle Modes</button>
+    <div id="dropdown" class="dropdown">
+      <label class="toggle-label"><input type="checkbox" id="bgToggle"> Chaos Background</label>
+      <label class="toggle-label"><input type="checkbox" id="shrinkToggle"> Shrink Yukes</label>
+      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="clickToggle"> Click to Destroy</label>
+      <label class="toggle-label"><input type="checkbox" id="quoteToggle"> Quote Mode</label>
+    </div>
     <button id="addBtn">Add Bryce Yuke</button>
-    <button id="bgBtn">Chaos Background</button>
-    <button id="shrinkBtn">Shrink Yukes</button>
-    <button id="collideBtn">Evil Mode (Collisions)</button>
-    <button id="clickBtn">Click to Destroy</button>
-    <button id="quoteBtn">Show Quote</button>
+    <button id="resetBtn">Reset</button>
     <div id="counter">Bryce Yukes: 1</div>
-    <div id="quote" style="margin-top:10px; font-size: 24px;"></div>
+    <div id="quote"></div>
   </div>
+  <div id="infoBox" class="info-box"></div>
 
   <script>
     const canvas = document.getElementById('bryceCanvas');
@@ -67,6 +101,7 @@
     resizeCanvas();
 
     const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
+    const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
 
     class BryceYuke {
       constructor() {
@@ -77,6 +112,11 @@
         this.color = "lime";
         this.size = 50;
         this.alive = true;
+        this.spawnTime = Date.now();
+        this.mood = "Chaotic";
+        this.role = "Bouncer";
+        this.personality = "Unpredictable";
+        this.favQuote = quotes[Math.floor(Math.random() * quotes.length)];
       }
 
       draw() {
@@ -107,11 +147,10 @@
 
         if (bounced) {
           this.color = colors[Math.floor(Math.random() * colors.length)];
+          if (document.getElementById('quoteToggle').checked) {
+            showQuote(this.favQuote);
+          }
         }
-      }
-
-      isClicked(mx, my) {
-        return this.alive && Math.abs(this.x - mx) < 100 && Math.abs(this.y - my) < 50;
       }
 
       shrink() {
@@ -128,49 +167,109 @@
           Math.abs(this.y - other.y) < 50
         );
       }
+
+      isClicked(mx, my) {
+        return this.alive && Math.abs(this.x - mx) < 100 && Math.abs(this.y - my) < 50;
+      }
     }
 
     let bryces = [new BryceYuke()];
     let chaosMode = false;
+    let paused = false;
+    let rainMode = false;
+
+    function showQuote(text) {
+      const quoteBox = document.getElementById('quote');
+      quoteBox.innerText = text;
+      setTimeout(() => {
+        quoteBox.innerText = "";
+      }, 1000);
+    }
 
     function updateCounter() {
       document.getElementById('counter').innerText = `Bryce Yukes: ${bryces.filter(b => b.alive).length}`;
     }
 
     function animate() {
-      if (chaosMode) {
-        document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      }
+      if (!paused) {
+        if (document.getElementById('bgToggle').checked) {
+          document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bryces.forEach(b => {
-        b.update();
-        b.draw();
-      });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        bryces.forEach(b => {
+          b.update();
+          b.draw();
+        });
 
-      for (let i = 0; i < bryces.length; i++) {
-        for (let j = i + 1; j < bryces.length; j++) {
-          if (bryces[i].collideWith(bryces[j])) {
-            bryces[j].alive = false;
+        if (document.getElementById('collideToggle').checked) {
+          for (let i = 0; i < bryces.length; i++) {
+            for (let j = i + 1; j < bryces.length; j++) {
+              if (bryces[i].collideWith(bryces[j])) {
+                bryces[j].alive = false;
+              }
+            }
           }
         }
-      }
 
+        if (document.getElementById('shrinkToggle').checked) {
+          bryces.forEach(b => b.shrink());
+        }
+
+        if (rainMode && Math.random() < 0.1) {
+          bryces.push(new BryceYuke());
+          updateCounter();
+        }
+      }
       requestAnimationFrame(animate);
     }
 
     animate();
 
-    document.getElementById('speedBtn').addEventListener('click', () => {
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
       bryces.forEach(b => {
-        b.dx *= 1.5;
-        b.dy *= 1.5;
+        if (b.isClicked(mx, my)) {
+          if (document.getElementById('clickToggle').checked) {
+            b.alive = false;
+            const explosion = document.createElement('div');
+            explosion.style.position = 'absolute';
+            explosion.style.left = `${b.x}px`;
+            explosion.style.top = `${b.y}px`;
+            explosion.style.color = 'white';
+            explosion.innerText = "💥";
+            document.body.appendChild(explosion);
+            setTimeout(() => explosion.remove(), 500);
+            updateCounter();
+          } else {
+            showInfoBox(e.clientX, e.clientY, b);
+          }
+        }
       });
     });
+
+    function showInfoBox(x, y, b) {
+      const box = document.getElementById('infoBox');
+      const timeAlive = ((Date.now() - b.spawnTime) / 1000).toFixed(1);
+      box.style.left = `${x}px`;
+      box.style.top = `${y}px`;
+      box.innerHTML = `
+        <strong>Time Alive:</strong> ${timeAlive}s<br>
+        <strong>Mood:</strong> ${b.mood}<br>
+        <strong>Role:</strong> ${b.role}<br>
+        <strong>Personality:</strong> ${b.personality}<br>
+        <strong>Favorite Quote:</strong> ${b.favQuote}
+      `;
+      box.style.display = 'block';
+      setTimeout(() => box.style.display = 'none', 3000);
+    }
 
     document.getElementById('resetBtn').addEventListener('click', () => {
       bryces = [new BryceYuke()];
       chaosMode = false;
+      rainMode = false;
       document.body.style.backgroundColor = "black";
       updateCounter();
     });
@@ -180,39 +279,17 @@
       updateCounter();
     });
 
-    document.getElementById('bgBtn').addEventListener('click', () => {
-      chaosMode = !chaosMode;
+    document.getElementById('dropdownToggle').addEventListener('click', () => {
+      const dropdown = document.getElementById('dropdown');
+      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
     });
 
-    document.getElementById('shrinkBtn').addEventListener('click', () => {
-      bryces.forEach(b => b.shrink());
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      paused = !paused;
     });
 
-    document.getElementById('collideBtn').addEventListener('click', () => {
-      bryces.forEach(b => {
-        b.dx *= 1;
-        b.dy *= 1;
-      });
-    });
-
-    document.getElementById('clickBtn').addEventListener('click', () => {
-      canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        bryces.forEach(b => {
-          if (b.isClicked(mx, my)) {
-            b.alive = false;
-            updateCounter();
-          }
-        });
-      });
-    });
-
-    document.getElementById('quoteBtn').addEventListener('click', () => {
-      const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      document.getElementById('quote').innerText = randomQuote;
+    document.getElementById('rainBtn').addEventListener('click', () => {
+      rainMode = !rainMode;
     });
 
     updateCounter();
