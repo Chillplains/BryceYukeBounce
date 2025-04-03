@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bryce Yuke Bouncer - ULTRA CHAOS EDITION</title>
+  <title>Bryce Yuke Simulator - ULTRA CHAOS EDITION</title>
   <style>
     body {
       margin: 0;
       background-color: black;
       overflow: hidden;
-      color: lime;
       font-family: Comic Sans MS, sans-serif;
+      color: lime;
     }
     canvas {
       display: block;
@@ -19,12 +19,15 @@
       position: absolute;
       top: 20px;
       left: 20px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(255, 255, 255, 0.9);
       padding: 10px;
       border-radius: 10px;
+      color: black;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     button, label {
-      margin: 2px;
+      margin: 4px 0;
       padding: 5px 10px;
       font-size: 14px;
       background-color: lime;
@@ -36,18 +39,20 @@
     }
     #counter {
       margin-top: 10px;
-      font-size: 20px;
+      font-size: 18px;
+      color: black;
     }
     .dropdown {
       display: none;
       flex-direction: column;
       gap: 5px;
-      margin-top: 5px;
+      margin-top: 10px;
     }
     .dropdown-toggle {
-      background-color: white;
-      color: black;
+      background-color: black;
+      color: lime;
       cursor: pointer;
+      padding: 8px;
     }
     .toggle-label {
       display: flex;
@@ -57,7 +62,8 @@
     }
     #quote {
       margin-top: 10px;
-      font-size: 24px;
+      font-size: 22px;
+      color: red;
     }
     .info-box {
       position: absolute;
@@ -72,176 +78,254 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 60px;
+      font-size: 50px;
       color: red;
       display: none;
-      text-shadow: 2px 2px white;
+      text-shadow: 2px 2px black;
     }
   </style>
 </head>
 <body>
   <canvas id="bryceCanvas"></canvas>
+
   <div id="controls">
     <button id="pauseBtn">Pause</button>
-    <button id="rainBtn">Matrix Rain Mode</button>
+    <button id="rainBtn">Rain Mode</button>
     <button id="speedBtn">Speed Up</button>
-    <button id="chaosBtn">🔥 Ultimate Chaos 🔥</button>
-    <button id="explosionBtn">Explosion Spam</button>
-    <button id="freezeBtn">Freeze All</button>
-    <button id="partyBtn">Party Mode</button>
+    <button id="selfDestructBtn">Self Destruct</button>
+    <button id="frenzyBtn">Click Frenzy</button>
+    <button id="ultimateChaosBtn">Ultimate Chaos</button>
     <button id="dropdownToggle" class="dropdown-toggle">Toggle Modes</button>
+
     <div id="dropdown" class="dropdown">
       <label class="toggle-label"><input type="checkbox" id="bgToggle"> Chaos Background</label>
       <label class="toggle-label"><input type="checkbox" id="shrinkToggle"> Shrink Yukes</label>
-      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode (Collision)</label>
+      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode (Collide)</label>
       <label class="toggle-label"><input type="checkbox" id="clickToggle"> Click to Destroy</label>
       <label class="toggle-label"><input type="checkbox" id="quoteToggle"> Quote Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="gravityToggle"> Gravity Flip</label>
+      <label class="toggle-label"><input type="checkbox" id="spinToggle"> Spin Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="invisToggle"> Invisibility Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="colorBombToggle"> Color Bomb Mode</label>
+      <label class="toggle-label"><input type="checkbox" id="possessedToggle"> Possessed Yuke</label>
     </div>
+
     <button id="addBtn">Add Bryce Yuke</button>
     <button id="resetBtn">Reset</button>
     <div id="counter">Bryce Yukes: 1</div>
     <div id="quote"></div>
   </div>
+
   <div id="infoBox" class="info-box"></div>
   <div id="chaosBanner">CHAOS MODE!!!</div>
-
   <script>
-    const canvas = document.getElementById('bryceCanvas');
-    const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('bryceCanvas');
+  const ctx = canvas.getContext('2d');
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
+  const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
+
+  class BryceYuke {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.dx = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+      this.dy = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
+      this.color = "lime";
+      this.size = 50;
+      this.alive = true;
+      this.spawnTime = Date.now();
+      this.mood = "Chaotic";
+      this.role = "Bouncer";
+      this.personality = "Unpredictable";
+      this.favQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      this.angle = 0;
+      this.invisible = false;
+      this.gravity = 1;
+      this.bounced = false;
     }
 
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+    draw() {
+      if (this.alive && !this.invisible) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.fillStyle = this.color;
+        ctx.font = `${this.size}px Comic Sans MS`;
+        ctx.textAlign = "center";
+        ctx.fillText("BRYCE YUKE", 0, 0);
+        ctx.restore();
+      }
+    }
 
-    const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
-    const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
+    update() {
+      if (!this.alive) return;
 
-    class BryceYuke {
-      constructor(rain = false) {
-        this.x = Math.random() * canvas.width;
-        this.y = rain ? -50 : Math.random() * canvas.height;
-        this.dx = rain ? 0 : (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
-        this.dy = rain ? Math.random() * 5 + 3 : (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
-        this.color = "lime";
-        this.size = 50;
-        this.originalSize = 50;
-        this.alive = true;
-        this.spawnTime = Date.now();
-        this.pausedTime = 0;
-        this.pauseStart = null;
-        this.rain = rain;
-        this.mood = "Chaotic";
-        this.role = "Bouncer";
-        this.personality = "Unpredictable";
-        this.favQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      this.dy += 0.05 * this.gravity;
+      this.x += this.dx;
+      this.y += this.dy;
+
+      let bounced = false;
+
+      if (this.x > canvas.width - 150 || this.x < 150) {
+        this.dx *= -1;
+        bounced = true;
+      }
+      if (this.y > canvas.height - 75) {
+        this.dy *= -1;
+        bounced = true;
+        this.bounced = true;
+      }
+      if (this.y < 75) {
+        this.dy *= -1;
+        bounced = true;
       }
 
-      draw() {
-        if (this.alive) {
-          ctx.fillStyle = this.color;
-          ctx.font = `${this.size}px Comic Sans MS`;
-          ctx.textAlign = "center";
-          ctx.fillText("BRYCE YUKE", this.x, this.y);
+      if (bounced) {
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        if (document.getElementById('quoteToggle').checked) {
+          showQuote(this.favQuote);
         }
-      }
-
-      update() {
-        if (!this.alive || paused) return;
-
-        this.x += this.dx;
-        this.y += this.dy;
-
-        if (this.rain && this.y > canvas.height + 50) {
+        if (rainMode) {
           this.alive = false;
         }
-
-        let bounced = false;
-
-        if (!this.rain) {
-          if (this.x > canvas.width - 150 || this.x < 150) {
-            this.dx *= -1;
-            bounced = true;
-          }
-          if (this.y > canvas.height - 75 || this.y < 75) {
-            this.dy *= -1;
-            bounced = true;
-          }
-
-          if (bounced && document.getElementById('quoteToggle').checked) {
-            showQuote(this.favQuote);
-          }
-
-          if (bounced) {
-            this.color = colors[Math.floor(Math.random() * colors.length)];
-          }
-        }
       }
 
-      shrink() {
-        if (this.size > 10) {
-          this.size -= 2;
-        }
+      if (document.getElementById('spinToggle').checked) {
+        this.angle += 0.2;
       }
-
-      growBack() {
-        if (this.size < this.originalSize) {
-          this.size += 2;
-        }
+      if (document.getElementById('shrinkToggle').checked) {
+        if (this.size > 10) this.size -= 1;
+      } else {
+        if (this.size < 50) this.size += 1;
       }
-
-      collideWith(other) {
-        return (
-          this.alive &&
-          other.alive &&
-          Math.abs(this.x - other.x) < 100 &&
-          Math.abs(this.y - other.y) < 50
-        );
-      }
-
-      isClicked(mx, my) {
-        return this.alive && Math.abs(this.x - mx) < 100 && Math.abs(this.y - my) < 50;
-      }
-
-      getAliveTime() {
-        let time = Date.now() - this.spawnTime - this.pausedTime;
-        if (this.pauseStart) time -= Date.now() - this.pauseStart;
-        return (time / 1000).toFixed(1);
-      }
-
-      pauseTimer() {
-        if (!this.pauseStart) this.pauseStart = Date.now();
-      }
-
-      resumeTimer() {
-        if (this.pauseStart) {
-          this.pausedTime += Date.now() - this.pauseStart;
-          this.pauseStart = null;
-        }
+      if (document.getElementById('invisToggle').checked) {
+        if (Math.random() < 0.01) this.invisible = !this.invisible;
+      } else {
+        this.invisible = false;
       }
     }
 
-    let bryces = [new BryceYuke()];
-    let paused = false;
-    let rainMode = false;
-    let chaosActive = false;
-
-    function showQuote(text) {
-      const quoteBox = document.getElementById('quote');
-      quoteBox.innerText = text;
-      setTimeout(() => {
-        quoteBox.innerText = "";
-      }, 1000);
+    collideWith(other) {
+      return (
+        this.alive &&
+        other.alive &&
+        Math.abs(this.x - other.x) < 100 &&
+        Math.abs(this.y - other.y) < 50
+      );
     }
 
-    function updateCounter() {
-      document.getElementById('counter').innerText = `Bryce Yukes: ${bryces.filter(b => b.alive).length}`;
+    isClicked(mx, my) {
+      return this.alive && Math.abs(this.x - mx) < 100 && Math.abs(this.y - my) < 50;
     }
 
-    function animate() {
+    timeAlive() {
+      return ((Date.now() - this.spawnTime) / 1000).toFixed(1);
+    }
+  }
+
+  let bryces = [new BryceYuke()];
+  let paused = false;
+  let rainMode = false;
+  let chaosMode = false;
+  let possessedYuke = null;
+  let frenzyMode = false;
+  let selfDestructActive = false;
+  let hyperSpeed = false;
+      function showQuote(text) {
+    const quoteBox = document.getElementById('quote');
+    quoteBox.innerText = text;
+    setTimeout(() => {
+      quoteBox.innerText = "";
+    }, 1000);
+  }
+
+  function updateCounter() {
+    document.getElementById('counter').innerText = `Bryce Yukes: ${bryces.filter(b => b.alive).length}`;
+  }
+
+  function showInfoBox(x, y, b) {
+    const box = document.getElementById('infoBox');
+    box.style.left = `${x}px`;
+    box.style.top = `${y}px`;
+    box.innerHTML = `
+      <strong>Time Alive:</strong> ${b.timeAlive()}s<br>
+      <strong>Mood:</strong> ${b.mood}<br>
+      <strong>Role:</strong> ${b.role}<br>
+      <strong>Personality:</strong> ${b.personality}<br>
+      <strong>Favorite Quote:</strong> ${b.favQuote}
+    `;
+    box.style.display = 'block';
+    setTimeout(() => box.style.display = 'none', 3000);
+  }
+
+  function triggerSelfDestruct() {
+    if (selfDestructActive) return;
+    selfDestructActive = true;
+    let countdown = 5;
+    const interval = setInterval(() => {
+      showQuote(`SELF DESTRUCT IN: ${countdown}`);
+      countdown--;
+      if (countdown < 0) {
+        clearInterval(interval);
+        bryces.forEach(b => b.alive = false);
+        showQuote("YUKED OUT");
+        selfDestructActive = false;
+      }
+    }, 1000);
+  }
+
+  function triggerFrenzy() {
+    frenzyMode = true;
+    showQuote("Click Frenzy ON!");
+    setTimeout(() => {
+      frenzyMode = false;
+      showQuote("Frenzy Over!");
+    }, 10000);
+  }
+
+  function triggerPossessedYuke() {
+    if (possessedYuke) return;
+    possessedYuke = bryces[Math.floor(Math.random() * bryces.length)];
+    possessedYuke.color = "red";
+    possessedYuke.role = "Possessed";
+    showQuote("A Yuke has been POSSESSED!");
+    setTimeout(() => {
+      possessedYuke.alive = false;
+      possessedYuke = null;
+    }, 15000);
+  }
+
+  function activateUltimateChaos() {
+    document.getElementById('bgToggle').checked = true;
+    document.getElementById('shrinkToggle').checked = true;
+    document.getElementById('collideToggle').checked = true;
+    document.getElementById('clickToggle').checked = true;
+    document.getElementById('quoteToggle').checked = true;
+    document.getElementById('gravityToggle').checked = true;
+    document.getElementById('spinToggle').checked = true;
+    document.getElementById('invisToggle').checked = true;
+    document.getElementById('colorBombToggle').checked = true;
+    document.getElementById('possessedToggle').checked = true;
+    hyperSpeed = true;
+    document.getElementById('chaosBanner').style.display = "block";
+
+    setTimeout(() => {
+      hyperSpeed = false;
+      document.getElementById('chaosBanner').style.display = "none";
+    }, 10000);
+  }
+
+  function animate() {
+    if (!paused) {
       if (document.getElementById('bgToggle').checked) {
         document.body.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
       } else {
@@ -249,85 +333,72 @@
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      bryces.forEach(b => {
-        b.update();
-        b.draw();
-      });
 
-      if (document.getElementById('collideToggle').checked) {
-        for (let i = 0; i < bryces.length; i++) {
-          for (let j = i + 1; j < bryces.length; j++) {
-            if (bryces[i].collideWith(bryces[j])) {
+      bryces.forEach(b => {
+        if (document.getElementById('gravityToggle').checked) {
+          b.gravity = -1;
+        } else {
+          b.gravity = 1;
+        }
+
+        if (hyperSpeed) {
+          b.x += b.dx * 2;
+          b.y += b.dy * 2;
+        } else {
+          b.update();
+        }
+
+        b.draw();
+
+        if (document.getElementById('collideToggle').checked) {
+          for (let j = 0; j < bryces.length; j++) {
+            if (b !== bryces[j] && b.collideWith(bryces[j])) {
               bryces[j].alive = false;
             }
           }
         }
-      }
 
-      if (document.getElementById('shrinkToggle').checked) {
-        bryces.forEach(b => b.shrink());
-      } else {
-        bryces.forEach(b => b.growBack());
-      }
-
-      if (rainMode) {
-        if (Math.random() < 0.4) {
-          bryces.push(new BryceYuke(true));
+        if (possessedYuke && possessedYuke !== b && possessedYuke.alive) {
+          if (Math.abs(possessedYuke.x - b.x) < 100 && Math.abs(possessedYuke.y - b.y) < 50) {
+            b.alive = false;
+          }
         }
+      });
+
+      if (document.getElementById('colorBombToggle').checked) {
+        bryces.forEach(b => {
+          if (Math.random() < 0.1) {
+            ctx.fillStyle = b.color;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
       }
 
-      requestAnimationFrame(animate);
+      if (rainMode && Math.random() < 0.3) {
+        const yuke = new BryceYuke();
+        yuke.y = 0;
+        yuke.dy = 4;
+        bryces.push(yuke);
+        updateCounter();
+      }
     }
 
-    animate();
+    requestAnimationFrame(animate);
+  }
 
-    document.getElementById('rainBtn').addEventListener('click', () => {
-      rainMode = !rainMode;
-      if (rainMode) {
-        bryces = [];
-      }
-      updateCounter();
-    });
+  animate();
+// === CLICK HANDLERS ===
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
 
-    document.getElementById('pauseBtn').addEventListener('click', () => {
-      paused = !paused;
-      bryces.forEach(b => {
-        if (paused) {
-          b.pauseTimer();
-        } else {
-          b.resumeTimer();
-        }
-      });
-    });
-
-    document.getElementById('speedBtn').addEventListener('click', () => {
-      bryces.forEach(b => {
-        b.dx *= 1.5;
-        b.dy *= 1.5;
-      });
-    });
-
-    document.getElementById('chaosBtn').addEventListener('click', () => {
-      chaosActive = true;
-      document.getElementById('chaosBanner').style.display = 'block';
-      document.getElementById('bgToggle').checked = true;
-      document.getElementById('shrinkToggle').checked = true;
-      document.getElementById('collideToggle').checked = true;
-      document.getElementById('clickToggle').checked = true;
-      document.getElementById('quoteToggle').checked = true;
-      bryces.forEach(b => {
-        b.dx *= 3;
-        b.dy *= 3;
-      });
-      setTimeout(() => {
-        document.getElementById('chaosBanner').style.display = 'none';
-        chaosActive = false;
-      }, 10000);
-    });
-
-    document.getElementById('explosionBtn').addEventListener('click', () => {
-      bryces.forEach(b => {
-        if (b.alive) {
+    bryces.forEach(b => {
+      if (b.isClicked(mx, my)) {
+        if (document.getElementById('clickToggle').checked || frenzyMode) {
+          b.alive = false;
           const explosion = document.createElement('div');
           explosion.style.position = 'absolute';
           explosion.style.left = `${b.x}px`;
@@ -336,78 +407,86 @@
           explosion.innerText = "💥";
           document.body.appendChild(explosion);
           setTimeout(() => explosion.remove(), 500);
-        }
-      });
-    });
 
-    document.getElementById('freezeBtn').addEventListener('click', () => {
-      paused = true;
-      bryces.forEach(b => b.pauseTimer());
-    });
-
-    document.getElementById('partyBtn').addEventListener('click', () => {
-      for (let i = 0; i < 50; i++) {
-        bryces.push(new BryceYuke());
-      }
-      updateCounter();
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      bryces = [new BryceYuke()];
-      rainMode = false;
-      updateCounter();
-    });
-
-    document.getElementById('addBtn').addEventListener('click', () => {
-      bryces.push(new BryceYuke());
-      updateCounter();
-    });
-
-    document.getElementById('dropdownToggle').addEventListener('click', () => {
-      const dropdown = document.getElementById('dropdown');
-      dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
-    });
-
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      bryces.forEach(b => {
-        if (b.isClicked(mx, my)) {
-          if (document.getElementById('clickToggle').checked) {
-            b.alive = false;
-            const explosion = document.createElement('div');
-            explosion.style.position = 'absolute';
-            explosion.style.left = `${b.x}px`;
-            explosion.style.top = `${b.y}px`;
-            explosion.style.color = 'white';
-            explosion.innerText = "💥";
-            document.body.appendChild(explosion);
-            setTimeout(() => explosion.remove(), 500);
-            updateCounter();
-          } else {
-            showInfoBox(e.clientX, e.clientY, b);
+          if (frenzyMode) {
+            score++;
           }
+
+          // Chain Reaction Mode
+          bryces.forEach(other => {
+            if (other !== b && other.alive && Math.abs(other.x - b.x) < 100 && Math.abs(other.y - b.y) < 50) {
+              other.alive = false;
+            }
+          });
+
+          updateCounter();
+        } else {
+          showInfoBox(e.clientX, e.clientY, b);
         }
-      });
+      }
     });
+  });
 
-    function showInfoBox(x, y, b) {
-      const box = document.getElementById('infoBox');
-      box.style.left = `${x}px`;
-      box.style.top = `${y}px`;
-      box.innerHTML = `
-        <strong>Time Alive:</strong> ${b.getAliveTime()}s<br>
-        <strong>Mood:</strong> ${b.mood}<br>
-        <strong>Role:</strong> ${b.role}<br>
-        <strong>Personality:</strong> ${b.personality}<br>
-        <strong>Favorite Quote:</strong> ${b.favQuote}
-      `;
-      box.style.display = 'block';
-      setTimeout(() => box.style.display = 'none', 3000);
-    }
+  document.getElementById('pauseBtn').addEventListener('click', () => {
+    paused = !paused;
+  });
 
+  document.getElementById('addBtn').addEventListener('click', () => {
+    bryces.push(new BryceYuke());
     updateCounter();
-  </script>
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    bryces = [new BryceYuke()];
+    rainMode = false;
+    chaosMode = false;
+    hyperSpeed = false;
+    possessedYuke = null;
+    document.body.style.backgroundColor = "black";
+    updateCounter();
+  });
+
+  document.getElementById('rainBtn').addEventListener('click', () => {
+    rainMode = !rainMode;
+    if (rainMode) {
+      bryces = []; // clear
+      updateCounter();
+    }
+  });
+
+  document.getElementById('speedBtn').addEventListener('click', () => {
+    bryces.forEach(b => {
+      b.dx *= 1.5;
+      b.dy *= 1.5;
+    });
+  });
+
+  document.getElementById('selfDestructBtn').addEventListener('click', () => {
+    triggerSelfDestruct();
+  });
+
+  document.getElementById('frenzyBtn').addEventListener('click', () => {
+    triggerFrenzy();
+  });
+
+  document.getElementById('ultimateChaosBtn').addEventListener('click', () => {
+    activateUltimateChaos();
+  });
+
+  document.getElementById('possessedToggle').addEventListener('change', (e) => {
+    if (e.target.checked) {
+      triggerPossessedYuke();
+    }
+  });
+
+  document.getElementById('dropdownToggle').addEventListener('click', () => {
+    const dropdown = document.getElementById('dropdown');
+    dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+  });
+
+  // OPTIONAL: Scoreboard for Click Frenzy
+  let score = 0;
+</script>
+
 </body>
 </html>
