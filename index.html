@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bryce Yuke Simulator - ULTRA CHAOS EDITION (Smooth Bounce)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bryce Yuke Simulator - ULTRA CHAOS EDITION (Remix)</title>
   <style>
     body {
       margin: 0;
@@ -72,6 +72,7 @@
       padding: 10px;
       border-radius: 8px;
       display: none;
+      font-size: 14px;
     }
     #chaosBanner {
       position: absolute;
@@ -83,6 +84,22 @@
       display: none;
       text-shadow: 2px 2px black;
     }
+    /* Self Destruct Modal Styles */
+    #selfDestructModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      text-align: center;
+      padding-top: 200px;
+      font-size: 30px;
+      z-index: 999;
+    }
+    #selfDestructModal button {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -93,15 +110,19 @@
     <button id="rainBtn">Rain Mode</button>
     <button id="speedBtn">Speed Up</button>
     <button id="selfDestructBtn">Self Destruct</button>
+    <button id="growBtn">Grow Yuke</button>
     <button id="frenzyBtn">Click Frenzy</button>
     <button id="ultimateChaosBtn">Ultimate Chaos</button>
+    <button id="toggleChaosBtn">Toggle Chaos Mode</button>
     <button id="dropdownToggle" class="dropdown-toggle">Toggle Modes</button>
 
     <div id="dropdown" class="dropdown">
-      <!-- Gravity toggle removed for smooth bouncing -->
       <label class="toggle-label"><input type="checkbox" id="bgToggle"> Chaos Background</label>
       <label class="toggle-label"><input type="checkbox" id="shrinkToggle"> Shrink Yukes</label>
-      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode (Collide)</label>
+      <!-- Old collide toggle (kills on collision) remains -->
+      <label class="toggle-label"><input type="checkbox" id="collideToggle"> Evil Mode (Collide, Kill)</label>
+      <!-- New collision bounce mode -->
+      <label class="toggle-label"><input type="checkbox" id="collisionBounceToggle"> Collision Bounce Mode</label>
       <label class="toggle-label"><input type="checkbox" id="clickToggle"> Click to Destroy</label>
       <label class="toggle-label"><input type="checkbox" id="quoteToggle"> Quote Mode</label>
       <label class="toggle-label"><input type="checkbox" id="spinToggle"> Spin Mode</label>
@@ -114,6 +135,13 @@
     <button id="resetBtn">Reset</button>
     <div id="counter">Bryce Yukes: 1</div>
     <div id="quote"></div>
+  </div>
+
+  <!-- Self Destruct Modal -->
+  <div id="selfDestructModal">
+    Self Destruct in <span id="selfDestructCountdown">5</span> seconds<br>
+    <button id="confirmSelfDestruct" style="background: red; color: white; font-size: 40px; padding: 20px; border: none; border-radius: 10px; margin-top: 20px;">ARE YOU SURE?</button><br>
+    <button id="cancelSelfDestruct" style="background: gray; color: white; font-size: 20px; padding: 10px; border: none; border-radius: 10px; margin-top: 10px;">Cancel</button>
   </div>
 
   <div id="infoBox" class="info-box"></div>
@@ -130,33 +158,61 @@
     resizeCanvas();
 
     const colors = ["red", "lime", "cyan", "yellow", "magenta", "white", "orange"];
-    const quotes = ["ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK"];
+    const quotes = [
+      "ARRDAAA YUKED UPPPP", "YEAH BOIIII", "YEAH OK", "BRYCE ALL DAY", "LET'S GET THIS YUKED",
+      "BOUNCING LIKE A BOSS", "YUKES ON DECK", "STAY CHILL", "BREAK IT DOWN", "HOLD UP, YUKES!",
+      "TIME TO SHINE", "UNLEASH THE CHAOS", "YUKES IN THE HOUSE", "CAN YOU DIG IT?", "WUBBA LUBBA DUB DUB"
+    ];
+    const rolesList = ["Bouncer", "Killer", "Chaser", "Fugitive", "Protector", "Trickster"];
+    const roleMoods = {
+      "Bouncer": "Chaotic",
+      "Killer": "Aggressive",
+      "Chaser": "Hungry",
+      "Fugitive": "Scared",
+      "Protector": "Calm",
+      "Trickster": "Sly"
+    };
 
-    let hyperSpeed = false; // Global hyper speed toggle
+    let hyperSpeed = false;
+    let chaosMode = false;
+    let possessedYuke = null;
+    let paused = false;
+    let rainMode = false;
+    let frenzyMode = false;
+    let selfDestructActive = false;
+    let selfDestructInterval = null;
 
     class BryceYuke {
       constructor() {
+        // Random spawn size: chance for small or big
+        this.size = Math.random() < 0.5 ? 30 + Math.random()*20 : 50 + Math.random()*20;
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
         this.dx = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
         this.dy = (Math.random() * 4 + 2) * (Math.random() < 0.5 ? 1 : -1);
         this.color = "lime";
-        this.size = 50;
         this.alive = true;
         this.spawnTime = Date.now();
-        this.mood = "Chaotic";
-        this.role = "Bouncer";
-        this.personality = "Unpredictable";
+        // Assign random role and corresponding mood
+        this.role = rolesList[Math.floor(Math.random() * rolesList.length)];
+        this.mood = roleMoods[this.role];
         this.favQuote = quotes[Math.floor(Math.random() * quotes.length)];
         this.angle = 0;
         this.invisible = false;
+        // For possessed mode timer
+        this.possessedEnd = null;
       }
 
       draw() {
         if (this.alive && !this.invisible) {
           ctx.save();
           ctx.translate(this.x, this.y);
-          ctx.rotate(this.angle);
+          // If spin mode is on, rotate; if off, snap back to 0
+          if (document.getElementById('spinToggle').checked) {
+            ctx.rotate(this.angle);
+          } else {
+            this.angle = 0;
+          }
           ctx.fillStyle = this.color;
           ctx.font = `${this.size}px Comic Sans MS`;
           ctx.textAlign = "center";
@@ -168,13 +224,19 @@
       update() {
         if (!this.alive) return;
 
-        // Glide like a screensaver with optional hyperSpeed multiplier
+        // If Rain Mode is active, do Matrix-style rain (vertical only)
+        if (rainMode) {
+          this.y += this.dy;
+          if (this.y > canvas.height) this.y = 0;
+          return; // Skip other updates in rain mode
+        }
+
+        // Normal movement (screensaver style bounce)
         const speedMultiplier = hyperSpeed ? 2 : 1;
         this.x += this.dx * speedMultiplier;
         this.y += this.dy * speedMultiplier;
 
         let bounced = false;
-
         // Bounce off left/right walls
         if (this.x > canvas.width - 150 || this.x < 150) {
           this.dx *= -1;
@@ -185,46 +247,69 @@
           this.dy *= -1;
           bounced = true;
         }
-
         if (bounced) {
           this.color = colors[Math.floor(Math.random() * colors.length)];
           if (document.getElementById('quoteToggle').checked) {
             showQuote(this.favQuote);
           }
-          if (rainMode) {
-            this.alive = false;
-          }
+          // In rain mode, dying on bounce (but not here)
+          if (rainMode) this.alive = false;
         }
 
+        // Spin mode: update angle if enabled
         if (document.getElementById('spinToggle').checked) {
           this.angle += 0.2;
         }
+
+        // Shrink toggle: shrink gradually, else regrow to original size (approx.)
         if (document.getElementById('shrinkToggle').checked) {
           if (this.size > 10) this.size -= 1;
         } else {
           if (this.size < 50) this.size += 1;
         }
+
+        // Invisibility toggle: random flicker
         if (document.getElementById('invisToggle').checked) {
           if (Math.random() < 0.01) this.invisible = !this.invisible;
         } else {
           this.invisible = false;
         }
+
+        // Creative behavior based on role (Chaser/Killer chase, Fugitive flees)
+        if (["Chaser", "Killer", "Fugitive"].includes(this.role)) {
+          let target = null;
+          let minDist = Infinity;
+          for (let other of bryces) {
+            if (other !== this && other.alive) {
+              let d = Math.hypot(this.x - other.x, this.y - other.y);
+              if (d < minDist) { minDist = d; target = other; }
+            }
+          }
+          if (target) {
+            let angleToTarget = Math.atan2(target.y - this.y, target.x - this.x);
+            const chaseFactor = 0.2;
+            if (this.role === "Chaser" || this.role === "Killer") {
+              this.dx += Math.cos(angleToTarget) * chaseFactor;
+              this.dy += Math.sin(angleToTarget) * chaseFactor;
+            } else if (this.role === "Fugitive") {
+              this.dx -= Math.cos(angleToTarget) * chaseFactor;
+              this.dy -= Math.sin(angleToTarget) * chaseFactor;
+            }
+          }
+        }
+      }
+
+      timeAlive() {
+        return ((Date.now() - this.spawnTime) / 1000).toFixed(1);
       }
     }
 
     let bryces = [new BryceYuke()];
-    let paused = false;
-    let rainMode = false;
-    let possessedYuke = null;
-    let frenzyMode = false;
-    let selfDestructActive = false;
 
     function showQuote(text) {
       const quoteBox = document.getElementById('quote');
       quoteBox.innerText = text;
-      setTimeout(() => {
-        quoteBox.innerText = "";
-      }, 1000);
+      setTimeout(() => { quoteBox.innerText = ""; }, 1000);
     }
 
     function updateCounter() {
@@ -233,33 +318,53 @@
 
     function showInfoBox(x, y, b) {
       const box = document.getElementById('infoBox');
+      let extra = "";
+      // If possessed, show timer left
+      if (b.role === "Possessed" && b.possessedEnd) {
+        let timeLeft = ((b.possessedEnd - Date.now())/1000).toFixed(1);
+        extra = `<br><strong>Possessed Time Left:</strong> ${timeLeft}s`;
+      }
       box.style.left = `${x}px`;
       box.style.top = `${y}px`;
       box.innerHTML = `
-        <strong>Time Alive:</strong> ${((Date.now() - b.spawnTime) / 1000).toFixed(1)}s<br>
-        <strong>Mood:</strong> ${b.mood}<br>
+        <strong>Time Alive:</strong> ${b.timeAlive()}s<br>
         <strong>Role:</strong> ${b.role}<br>
-        <strong>Personality:</strong> ${b.personality}<br>
+        <strong>Mood:</strong> ${b.mood}<br>
         <strong>Favorite Quote:</strong> ${b.favQuote}
+        ${extra}
       `;
       box.style.display = 'block';
-      setTimeout(() => box.style.display = 'none', 3000);
+      setTimeout(() => { box.style.display = 'none'; }, 3000);
     }
 
-    function triggerSelfDestruct() {
+    // Self Destruct Modal logic
+    function showSelfDestructModal() {
       if (selfDestructActive) return;
       selfDestructActive = true;
+      const modal = document.getElementById('selfDestructModal');
+      const countdownEl = document.getElementById('selfDestructCountdown');
       let countdown = 5;
-      const interval = setInterval(() => {
-        showQuote(`SELF DESTRUCT IN: ${countdown}`);
+      countdownEl.innerText = countdown;
+      modal.style.display = "block";
+      selfDestructInterval = setInterval(() => {
         countdown--;
-        if (countdown < 0) {
-          clearInterval(interval);
-          bryces.forEach(b => b.alive = false);
-          showQuote("YUKED OUT");
-          selfDestructActive = false;
+        countdownEl.innerText = countdown;
+        if (countdown <= 0) {
+          clearInterval(selfDestructInterval);
         }
       }, 1000);
+    }
+
+    function confirmSelfDestruct() {
+      bryces.forEach(b => b.alive = false);
+      showQuote("YUKED OUT");
+      closeSelfDestructModal();
+    }
+
+    function closeSelfDestructModal() {
+      clearInterval(selfDestructInterval);
+      document.getElementById('selfDestructModal').style.display = "none";
+      selfDestructActive = false;
     }
 
     function triggerFrenzy() {
@@ -276,13 +381,18 @@
       possessedYuke = bryces[Math.floor(Math.random() * bryces.length)];
       possessedYuke.color = "red";
       possessedYuke.role = "Possessed";
+      possessedYuke.mood = "Haunted";
+      possessedYuke.possessedEnd = Date.now() + 15000;
       showQuote("A Yuke has been POSSESSED!");
       setTimeout(() => {
-        possessedYuke.alive = false;
-        possessedYuke = null;
+        if (possessedYuke) {
+          possessedYuke.alive = false;
+          possessedYuke = null;
+        }
       }, 15000);
     }
 
+    // Ultimate Chaos: one-time chaos explosion for 10s
     function activateUltimateChaos() {
       document.getElementById('bgToggle').checked = true;
       document.getElementById('shrinkToggle').checked = true;
@@ -295,12 +405,33 @@
       document.getElementById('possessedToggle').checked = true;
       hyperSpeed = true;
       document.getElementById('chaosBanner').style.display = "block";
-
       setTimeout(() => {
         hyperSpeed = false;
         document.getElementById('chaosBanner').style.display = "none";
       }, 10000);
     }
+
+    // Toggle Chaos Mode: can be turned on/off manually
+    document.getElementById('toggleChaosBtn').addEventListener('click', () => {
+      chaosMode = !chaosMode;
+      if (chaosMode) {
+        hyperSpeed = true;
+        document.getElementById('chaosBanner').style.display = "block";
+        // Force all toggles on for maximum chaos
+        document.getElementById('bgToggle').checked = true;
+        document.getElementById('shrinkToggle').checked = true;
+        document.getElementById('collideToggle').checked = true;
+        document.getElementById('clickToggle').checked = true;
+        document.getElementById('quoteToggle').checked = true;
+        document.getElementById('spinToggle').checked = true;
+        document.getElementById('invisToggle').checked = true;
+        document.getElementById('colorBombToggle').checked = true;
+        document.getElementById('possessedToggle').checked = true;
+      } else {
+        hyperSpeed = false;
+        document.getElementById('chaosBanner').style.display = "none";
+      }
+    });
 
     function animate() {
       if (!paused) {
@@ -309,13 +440,14 @@
         } else {
           document.body.style.backgroundColor = "black";
         }
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Update and draw all Bryce Yukes
         bryces.forEach(b => {
           b.update();
           b.draw();
 
+          // Evil Mode (collide & kill)
           if (document.getElementById('collideToggle').checked) {
             for (let j = 0; j < bryces.length; j++) {
               if (b !== bryces[j] && b.alive && bryces[j].alive && Math.abs(b.x - bryces[j].x) < 100 && Math.abs(b.y - bryces[j].y) < 50) {
@@ -323,37 +455,56 @@
               }
             }
           }
-
-          if (possessedYuke && possessedYuke !== b && possessedYuke.alive) {
-            if (Math.abs(possessedYuke.x - b.x) < 100 && Math.abs(possessedYuke.y - b.y) < 50) {
-              b.alive = false;
-            }
-          }
         });
 
-        if (document.getElementById('colorBombToggle').checked) {
+        // Collision Bounce Mode: make Yukes bounce off each other (swap velocities)
+        if (document.getElementById('collisionBounceToggle').checked) {
+          for (let i = 0; i < bryces.length; i++) {
+            for (let j = i + 1; j < bryces.length; j++) {
+              const a = bryces[i], b = bryces[j];
+              if (a.alive && b.alive && Math.abs(a.x - b.x) < 100 && Math.abs(a.y - b.y) < 50) {
+                // Swap velocities
+                [a.dx, b.dx] = [b.dx, a.dx];
+                [a.dy, b.dy] = [b.dy, a.dy];
+              }
+            }
+          }
+        }
+
+        // Possessed Yuke effect: if a possessed Yuke is near others, they get eliminated
+        if (possessedYuke && possessedYuke.alive) {
           bryces.forEach(b => {
-            if (Math.random() < 0.1) {
-              ctx.fillStyle = b.color;
-              ctx.beginPath();
-              ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-              ctx.fill();
+            if (b !== possessedYuke && b.alive && Math.abs(possessedYuke.x - b.x) < 100 && Math.abs(possessedYuke.y - b.y) < 50) {
+              b.alive = false;
             }
           });
         }
 
+        // Color Bomb Mode: burst of colored circles around each Yuke
+        if (document.getElementById('colorBombToggle').checked) {
+          bryces.forEach(b => {
+            if (Math.random() < 0.2) {
+              for (let k = 0; k < 3; k++) {
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.beginPath();
+                ctx.arc(b.x + Math.random()*30 - 15, b.y + Math.random()*30 - 15, 5, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          });
+        }
+
+        // In Rain Mode, spawn new Yukes falling like the Matrix rain
         if (rainMode && Math.random() < 0.3) {
-          const yuke = new BryceYuke();
+          let yuke = new BryceYuke();
           yuke.y = 0;
-          yuke.dy = 4;
+          yuke.dy = 4; // constant fall speed
           bryces.push(yuke);
           updateCounter();
         }
       }
-
       requestAnimationFrame(animate);
     }
-
     animate();
 
     // === CLICK HANDLERS ===
@@ -361,7 +512,6 @@
       const rect = canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-
       bryces.forEach(b => {
         if (b.alive && Math.abs(b.x - mx) < 100 && Math.abs(b.y - my) < 50) {
           if (document.getElementById('clickToggle').checked || frenzyMode) {
@@ -374,18 +524,12 @@
             explosion.innerText = "💥";
             document.body.appendChild(explosion);
             setTimeout(() => explosion.remove(), 500);
-
-            if (frenzyMode) {
-              // Score logic if needed
-            }
-
-            // Chain Reaction Mode
+            // Chain Reaction Mode: kill nearby Yukes
             bryces.forEach(other => {
               if (other !== b && other.alive && Math.abs(other.x - b.x) < 100 && Math.abs(other.y - b.y) < 50) {
                 other.alive = false;
               }
             });
-
             updateCounter();
           } else {
             showInfoBox(e.clientX, e.clientY, b);
@@ -406,6 +550,7 @@
     document.getElementById('resetBtn').addEventListener('click', () => {
       bryces = [new BryceYuke()];
       rainMode = false;
+      chaosMode = false;
       hyperSpeed = false;
       possessedYuke = null;
       document.body.style.backgroundColor = "black";
@@ -415,7 +560,7 @@
     document.getElementById('rainBtn').addEventListener('click', () => {
       rainMode = !rainMode;
       if (rainMode) {
-        bryces = []; // clear
+        bryces = []; // clear screen for rain
         updateCounter();
       }
     });
@@ -428,7 +573,13 @@
     });
 
     document.getElementById('selfDestructBtn').addEventListener('click', () => {
-      triggerSelfDestruct();
+      showSelfDestructModal();
+    });
+
+    document.getElementById('growBtn').addEventListener('click', () => {
+      bryces.forEach(b => {
+        if (b.alive) b.size += 10;
+      });
     });
 
     document.getElementById('frenzyBtn').addEventListener('click', () => {
@@ -450,9 +601,9 @@
       dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
     });
 
-    // OPTIONAL: Scoreboard for Click Frenzy
-    let score = 0;
+    // Self Destruct Modal Buttons
+    document.getElementById('confirmSelfDestruct').addEventListener('click', confirmSelfDestruct);
+    document.getElementById('cancelSelfDestruct').addEventListener('click', closeSelfDestructModal);
   </script>
-
 </body>
 </html>
